@@ -1,0 +1,35 @@
+name: VirtueCloud Demo Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required for OIDC
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Creds (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::739572313120:role/GitHubActionsVirtueCloudRole
+          aws-region: us-east-1
+
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
+
+      - name: Create dummy build folder
+        run: |
+          mkdir -p build
+          echo "Hello from VirtueCloud demo workflow" > build/index.html
+
+      - name: Upload to S3 (demo bucket)
+        run: aws s3 sync ./build/ s3://virtuecloud-demo-bucket --delete
+
+      - name: CloudFront Invalidation (demo distribution)
+        run: aws cloudfront create-invalidation --distribution-id E1FWLVBEGGTKL2 --paths "/*"
+
